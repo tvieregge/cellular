@@ -11,7 +11,8 @@ data Zipper x = Zipper [x] x [x] deriving(Show)
 data U x = U (Zipper (Zipper x)) deriving(Show)
 
 someFunc :: IO ()
-someFunc =  putStrLn $ display $ result 1 rule makeGlider
+someFunc =  mapM_ putStrLn $ map (\x -> display $ result x golRule makeGlider) [1..5]
+-- someFunc =  putStrLn $ display $ result 3 golRule makeGlider
 
 display ::  U CellData -> String
 display (U z) = unlines $ map toString $ toList $ fmap toList z
@@ -101,6 +102,22 @@ horizontal = shift left right
 
 vertical :: U a ->  Zipper (U a)
 vertical = shift up down
+
+neighbours :: U a -> [a]
+neighbours u = map (\shift -> extract $ shift u) allShifts
+    where allShifts = horz ++ vert ++ diag
+          horz = [left, right]
+          vert = [up, down]
+          diag = (.) <$> horz <*> vert
+
+golRule :: U CellData -> CellData
+golRule (U (Zipper _ (Zipper _ (CI n) _) _)) = error "Might as well write Python!"
+golRule u = case nCount of
+               2 -> extract u
+               3 -> CB True
+               _ -> CB False
+    where nCount = length . filter id $ getBool <$> neighbours u
+          getBool (CB b) = b
 
 instance Functor U where
     fmap f (U z) = U $ (fmap . fmap) f z
