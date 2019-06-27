@@ -62,16 +62,6 @@ makeGlider =
         fz = Zipper fl f fl
         line l = Zipper fl f (l ++ fl)
 
-instance Functor Zipper where
-    fmap f (Zipper ls x rs) = Zipper (fmap f ls) (f x) (fmap f rs)
-
-shift :: (z a -> z a)
-      -> (z a -> z a)
-      -> z a
-      -> Zipper (z a)
-shift l r z =
-    Zipper (iterate' l z) z (iterate' r z)
-
 iterate' :: (a -> a) -> a -> [a]
 iterate' f a = tail $ iterate f a
 
@@ -80,10 +70,6 @@ shiftRight _ = error "bad right"
 
 shiftLeft (Zipper (l:ls) x rs) = Zipper ls l (x:rs)
 shiftLeft _ = error "bad left"
-
-instance Comonad Zipper where
-    extract (Zipper ls x rs) = x
-    duplicate z = Zipper (iterate' shiftLeft z) z (iterate' shiftRight z)
 
 up :: U a -> U a
 up (U z) = U (shiftLeft z)
@@ -119,10 +105,32 @@ golRule u = case nCount of
     where nCount = length . filter id $ getBool <$> neighbours u
           getBool (CB b) = b
 
+instance Comonad Zipper where
+    extract (Zipper ls x rs) = x
+    duplicate z = shift shiftLeft shiftRight z
+    -- duplicate z = Zipper (iterate' shiftLeft z) z (iterate' shiftRight z)
+
+instance Functor Zipper where
+    fmap f (Zipper ls x rs) = Zipper (fmap f ls) (f x) (fmap f rs)
+
+shift :: (z a -> z a)
+      -> (z a -> z a)
+      -> z a
+      -> Zipper (z a)
+shift l r z =
+    Zipper (iterate' l z) z (iterate' r z)
+
 instance Functor U where
     fmap f (U z) = U $ (fmap . fmap) f z
 
+-- left :: U a -> U a
+-- left (U z) = U (fmap shiftLeft z)
+
 instance Comonad U where
     extract (U z) = extract $ extract z
-    duplicate u = U $ fmap horizontal $ vertical u
+    -- duplicate u@(U z) = U $ fmap (shift (U $ (fmap . shiftLeft . getZipper)) right) $
+    duplicate u@(U z) = U $ fmap (shift (U . (fmap shiftLeft getZipper) ) right) $
+                        (shift (U . shiftLeft . getZipper) (U . shiftRight . getZipper)) u
+        where getZipper (U z) = z
+    -- duplicate u = U $ fmap horizontal $ vertical u
     -- duplicate (U z) = fmap U . U . duplicate $ duplicate z
