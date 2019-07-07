@@ -10,6 +10,26 @@ data CellData = CB Bool | CI Int deriving(Show)
 data Zipper x = Zipper [x] x [x] deriving(Show)
 data U x = U (Zipper (Zipper x)) deriving(Show)
 
+-- n-dimentional zippers
+
+data NZipper a = Z a | S (NZipper (Zipper a)) deriving Show
+-- data NZipper a = Z a | S (NZipper [a]) deriving Show
+
+makeList :: Int -> a -> NZipper a
+makeList 0 v = S (Z $ Zipper [v,v,v] v [v,v,v])
+makeList n v = S (makeList (n-1) $ Zipper (replicate 3 v) v (replicate 3 v))
+
+instance Functor NZipper where
+    fmap f (Z v) = Z (f v)
+    fmap f (S v) = S (fmap (fmap f) v)
+    -- fmap f (Zipper ls x rs) = Zipper (fmap f ls) (f x) (fmap f rs)
+
+-- testShift :: NZipper a -> NZipper a
+-- testShift (Z v) =
+-- testShift (S v) = S $ testShift
+
+-- end experiment
+
 someFunc :: IO ()
 someFunc =  mapM_ putStrLn $ map (\x -> display $ result x golRule makeGlider) [1..5]
 -- someFunc =  putStrLn $ display $ result 3 golRule makeGlider
@@ -84,7 +104,8 @@ right :: U a -> U a
 right (U z) = U (fmap shiftRight z)
 
 horizontal :: U a -> Zipper (U a)
-horizontal = shift left right
+horizontal = shift (U . (fmap shiftLeft getZipper)) (U . (fmap shiftRight getZipper))
+-- horizontal = shift left right
 
 vertical :: U a ->  Zipper (U a)
 vertical = shift up down
@@ -123,14 +144,12 @@ shift l r z =
 instance Functor U where
     fmap f (U z) = U $ (fmap . fmap) f z
 
--- left :: U a -> U a
--- left (U z) = U (fmap shiftLeft z)
+getZipper (U z) = z
 
 instance Comonad U where
     extract (U z) = extract $ extract z
-    -- duplicate u@(U z) = U $ fmap (shift (U $ (fmap . shiftLeft . getZipper)) right) $
-    duplicate u@(U z) = U $ fmap (shift (U . (fmap shiftLeft getZipper) ) right) $
+    duplicate u@(U z) = U $
+                        fmap (shift (U . (fmap shiftLeft getZipper) ) right) $
                         (shift (U . shiftLeft . getZipper) (U . shiftRight . getZipper)) u
-        where getZipper (U z) = z
     -- duplicate u = U $ fmap horizontal $ vertical u
     -- duplicate (U z) = fmap U . U . duplicate $ duplicate z
