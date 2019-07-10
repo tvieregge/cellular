@@ -22,11 +22,10 @@ makeList n v = S (makeList (n-1) $ Zipper (replicate 3 v) v (replicate 3 v))
 instance Functor NZipper where
     fmap f (Z v) = Z (f v)
     fmap f (S v) = S (fmap (fmap f) v)
-    -- fmap f (Zipper ls x rs) = Zipper (fmap f ls) (f x) (fmap f rs)
 
--- testShift :: NZipper a -> NZipper a
--- testShift (Z v) =
--- testShift (S v) = S $ testShift
+testShift :: NZipper a -> NZipper a
+testShift (Z v) = Z v
+testShift (S v) = S (fmap shiftLeft (testShift v))
 
 -- end experiment
 
