@@ -12,7 +12,6 @@ data U x = U (Zipper (Zipper x)) deriving(Show)
 
 someFunc :: IO ()
 someFunc =  mapM_ putStrLn $ map (\x -> display $ result x golRule makeGlider) [1..5]
--- someFunc =  putStrLn $ display $ result 3 golRule makeGlider
 
 display ::  U CellData -> String
 display (U z) = unlines $ map toString $ toList $ fmap toList z
@@ -70,7 +69,6 @@ right (U z) = U (fmap shiftRight z)
 
 horizontal :: U a -> Zipper (U a)
 horizontal = shift (U . (fmap shiftLeft getZipper)) (U . (fmap shiftRight getZipper))
--- horizontal = shift left right
 
 vertical :: U a ->  Zipper (U a)
 vertical = shift up down
@@ -99,7 +97,5 @@ instance Comonad U where
     duplicate u@(U z) = U $
                         fmap (shift (U . (fmap shiftLeft getZipper) ) right) $
                         (shift (U . shiftLeft . getZipper) (U . shiftRight . getZipper)) u
-    -- duplicate u = U $ fmap horizontal $ vertical u
-    -- duplicate (U z) = fmap U . U . duplicate $ duplicate z
 
 getZipper (U z) = z
